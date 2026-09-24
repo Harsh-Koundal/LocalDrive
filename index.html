@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Files</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+        }
+
+        /* =========================
+           ROOT ACTIONS
+        ========================= */
+
+        .root-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s ease;
+        }
+
+        .folder-button {
+            background: #2563eb;
+            color: white;
+        }
+
+        .folder-button:hover {
+            background: #1d4ed8;
+        }
+
+        .upload-button {
+            background: #16a34a;
+            color: white;
+        }
+
+        .upload-button:hover {
+            background: #15803d;
+        }
+
+        .small-button {
+            font-size: 12px;
+            padding: 5px 9px;
+        }
+
+        /* =========================
+           FILE TREE
+        ========================= */
+
+        .file-tree {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .file-container {
+            margin-top: 8px;
+        }
+
+        .file-container:first-child {
+            margin-top: 0;
+        }
+
+        /* =========================
+           FOLDER
+        ========================= */
+
+        .folder-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .folder-row:hover {
+            background: #f3f4f6;
+        }
+
+        .folder {
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .folder-icon {
+            margin-right: 5px;
+        }
+
+        .folder-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .folder-children {
+            margin-left: 28px;
+            padding-left: 12px;
+            border-left: 1px solid #e5e7eb;
+        }
+
+        /* =========================
+           FILE
+        ========================= */
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .file-row:hover {
+            background: #f3f4f6;
+        }
+
+        .file-name {
+            flex: 1;
+        }
+
+        .file-icon {
+            margin-right: 5px;
+        }
+
+        /* =========================
+           FILE ACTIONS
+        ========================= */
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action {
+            cursor: pointer;
+            color: #2563eb;
+            font-size: 13px;
+        }
+
+        .action:hover {
+            text-decoration: underline;
+        }
+
+        /* =========================
+           CREATE FOLDER INPUT
+        ========================= */
+
+        .folder-input {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding: 7px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .folder-input:focus {
+            border-color: #2563eb;
+        }
+
+        /* =========================
+           EMPTY STATE
+        ========================= */
+
+        .empty {
+            text-align: center;
+            color: #6b7280;
+            padding: 50px 20px;
+        }
+
+        /* =========================
+           LOADING
+        ========================= */
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #6b7280;
+        }
+
+        .delete-action {
+            color: #dc2626;
+        }
+
+        .delete-action:hover {
+            color: #b91c1c;
+        }
+
+        .delete-button {
+            background: #dc2626;
+            color: white;
+        }
+
+        .delete-button:hover {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <!-- =========================
+             HEADER
+        ========================= -->
+
+        <div class="header">
+
+            <h1>📁 My Files</h1>
+
+        </div>
+
+
+        <!-- =========================
+             ROOT ACTIONS
+        ========================= -->
+
+        <div class="root-actions">
+
+            <button id="createFolder" class="folder-button">
+                + New Folder
+            </button>
+
+            <button id="uploadRoot" class="upload-button">
+                ↑ Upload File
+            </button>
+
+        </div>
+
+
+        <!-- Hidden root file input -->
+
+        <input type="file" id="rootFileInput" hidden>
+
+
+        <!-- =========================
+             FILE TREE
+        ========================= -->
+
+        <div id="myFiles" class="file-tree">
+
+            <div class="loading">
+                Loading files...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        const API_URL = "http://localhost:5020";
+
+
+        const myFilesContainer =
+            document.querySelector("#myFiles");
+
+        const createFolderButton =
+            document.querySelector("#createFolder");
+
+        const uploadRootButton =
+            document.querySelector("#uploadRoot");
+
+        const rootFileInput =
+            document.querySelector("#rootFileInput");
+
+
+        /*
+        ========================================
+        GET FILES
+        ========================================
+        */
+
+        const myFiles = async () => {
+
+            try {
+
+                const res = await fetch(
+                    `${API_URL}/files`
+                );
+
+
+                if (!res.ok) {
+
+                    throw new Error(
+                        `HTTP error: ${res.status}`
+                    );
+
+                }
+
+
+                const data = await res.json();
+
+
+                myFilesContainer.innerHTML = "";
+
+
+                if (
+                    !data.files ||
+                    data.files.length === 0
+                ) {
+
+                    myFilesContainer.innerHTML = `
+                        <div class="empty">
+                            📂 No files or folders
+                        </div>
+                    `;
+
+                    return;
+                }
+
+
+                renderFiles(
+                    data.files,
+                    myFilesContainer
+                );
+
+
+            } catch (err) {
+
+                console.error(
+                    "Failed to load files:",
+                    err
+                );
+
+
+                myFilesContainer.innerHTML = `
+                    <div class="empty">
+                        ❌ Failed to load files
+                    </div>
+                `;
+
+            }
+
+        };
+
+
+        /*
+        ========================================
+        RENDER FILE TREE
+        ========================================
+        */
+
+        function renderFiles(
+            items,
+            container,
+            currentPath = ""
+        ) {
+
+            items.forEach(item => {
+
+                const itemContainer =
+                    document.createElement("div");
+
+
+                itemContainer.className =
+                    "file-container";
+
+
+                /*
+                ========================================
+                DIRECTORY
+                ========================================
+                */
+
+                if (
+                    item.type === "directory"
+                ) {
+
+                    /*
+                    Folder Row
+                    */
+
+                    const folderRow =
+                        document.createElement("div");
+
+                    folderRow.className =
+                        "folder-row";
+
+
+                    /*
+                    Folder Name
+                    */
+
+                    const folder =
+                        document.createElement("div");
+
+                    folder.className =
+                        "folder";
+
+
+                    folder.innerHTML =
+                        `<span class="folder-icon">📁</span>
+                         ${escapeHtml(item.name)}`;
+
+
+                    /*
+                    Children Container
+                    */
+
+                    const childrenContainer =
+                        document.createElement("div");
+
+
+                    childrenContainer.className =
+                        "folder-children";
+
+
+                    childrenContainer.style.display =
+                        "none";
+
+
+                    /*
+                    Folder Path
+                    */
+
+                    const folderPath =
+                        currentPath
+                            ? `${currentPath}/${item.name}`
+                            : item.name;
+
+
+                    /*
+                    ========================================
+                    FOLDER ACTIONS
+                    ========================================
+                    */
+
+                    const folderActions =
+                        document.createElement("div");
+
+                    folderActions.className =
+                        "folder-actions";
+
+
+                    /*
+                    Upload Button
+                    */
+
+                    const uploadButton =
+                        document.createElement("button");
+
+                    uploadButton.className =
+                        "upload-button small-button";
+
+                    uploadButton.textContent =
+                        "Upload";
+
+
+                    uploadButton.addEventListener(
+                        "click",
+                        () => {
+
+                            const fileInput =
+                                document.createElement(
+                                    "input"
+                                );
+
+
+                            fileInput.type =
+                                "file";
+
+
+                            fileInput.addEventListener(
+                                "change",
+                                async (e) => {
+
+                                    const selectedFile =
+                                        e.target.files[0];
+
+
+                                    if (!selectedFile) {
+                                        return;
+                                    }
+
+
+                                    await uploadFile(
+                                        selectedFile,
+                                        folderPath
+                                    );
+
+                                }
+                            );
+
+
+                            fileInput.click();
+
+                        }
+                    );
+
+
+                    /*
+                    New Folder Button
+                    */
+
+                    const newFolderButton =
+                        document.createElement("button");
+
+
+                    newFolderButton.className =
+                        "folder-button small-button";
+
+
+                    newFolderButton.textContent =
+                        "+ Folder";
+
+
+                    newFolderButton.addEventListener(
+                        "click",
+                        () => {
+
+                            createNestedFolder(
+                                itemContainer,
+                                folderPath
+                            );
+
+                        }
+                    );
+
+
+                    folderActions.appendChild(
+                        uploadButton
+                    );
+
+
+                    folderActions.appendChild(
+                        newFolderButton
+                    );
+
+
+                    /*
+                    Add folder name + actions
+                    */
+
+                    folderRow.appendChild(
+                        folder
+                    );
+
+
+                    folderRow.appendChild(
+                        folderActions
+                    );
+
+
+                    /*
+                    Expand / Collapse
+                    */
+
+                    folder.addEventListener(
+                        "click",
+                        () => {
+
+                            const isClosed =
+                                childrenContainer
+                                    .style
+                                    .display === "none";
+
+
+                            childrenContainer.style.display =
+                                isClosed
+                                    ? "block"
+                                    : "none";
+
+                        }
+                    );
+
+
+                    /*
+                    Add elements
+                    */
+
+                    itemContainer.appendChild(
+                        folderRow
+                    );
+
+
+                    itemContainer.appendChild(
+                        childrenContainer
+                    );
+
+
+                    /*
+                    Recursive rendering
+                    */
+
+                    renderFiles(
+                        item.children || [],
+                        childrenContainer,
+                        folderPath
+                    );
+
+                    const deleteButton =
+                        document.createElement("button");
+    
+                    deleteButton.className =
+                        "small-button delete-button";
+    
+                    deleteButton.textContent =
+                        "Delete";
+    
+                    deleteButton.addEventListener(
+                        "click",
+                        (e) => {
+    
+                            // Prevent folder expand/collapse
+                            e.stopPropagation();
+    
+                            deleteFile(folderPath);
+                        }
+                    );
+    
+                    folderActions.appendChild(
+                        deleteButton
+                    );
+                }
+
+
+
+                /*
+                ========================================
+                FILE
+                ========================================
+                */
+
+                else {
+
+                    const fileRow =
+                        document.createElement("div");
+
+                    fileRow.className =
+                        "file-row";
+
+
+                    /*
+                    File path
+                    */
+
+                    const filePath =
+                        currentPath
+                            ? `${currentPath}/${item.name}`
+                            : item.name;
+
+
+                    /*
+                    File name
+                    */
+
+                    const fileName =
+                        document.createElement("div");
+
+
+                    fileName.className =
+                        "file-name";
+
+
+                    fileName.innerHTML =
+                        `<span class="file-icon">📄</span>
+                         ${escapeHtml(item.name)}`;
+
+
+                    /*
+                    Actions
+                    */
+
+                    const fileActions =
+                        document.createElement("div");
+
+
+                    fileActions.className =
+                        "file-actions";
+
+
+                    /*
+                    Open
+                    */
+
+                    const openButton =
+                        document.createElement("span");
+
+
+                    openButton.className =
+                        "action";
+
+
+                    openButton.textContent =
+                        "Open";
+
+
+                    openButton.addEventListener(
+                        "click",
+                        () => {
+
+                            const encodedPath =
+                                encodePath(filePath);
+
+
+                            window.open(
+                                `${API_URL}/files/${encodedPath}`,
+                                "_blank"
+                            );
+
+                        }
+                    );
+
+                    /*
+                    Download
+                    */
+
+                    const downloadButton =
+                        document.createElement("span");
+
+
+                    downloadButton.className =
+                        "action";
+
+
+                    downloadButton.textContent =
+                        "Download";
+
+
+                    downloadButton.addEventListener(
+                        "click",
+                        () => {
+
+                            const encodedPath =
+                                encodePath(filePath);
+
+
+                            window.open(
+                                `${API_URL}/files/download/${encodedPath}`,
+                                "_blank"
+                            );
+
+                        }
+                    );
+
+
+                    fileActions.appendChild(
+                        openButton
+                    );
+
+
+                    fileActions.appendChild(
+                        downloadButton
+                    );
+
+
+                    fileRow.appendChild(
+                        fileName
+                    );
+
+
+                    fileRow.appendChild(
+                        fileActions
+                    );
+
+
+                    itemContainer.appendChild(
+                        fileRow
+                    );
+
+                    const deleteButton =
+                        document.createElement("span");
+
+                    deleteButton.className =
+                        "action delete-action";
+
+                    deleteButton.textContent =
+                        "Delete";
+
+                    deleteButton.addEventListener(
+                        "click",
+                        () => {
+                            deleteFile(filePath);
+                        }
+                    );
+
+                    fileActions.appendChild(
+                        deleteButton
+                    );
+
+
+                }
+
+
+                container.appendChild(
+                    itemContainer
+                );
+
+            });
+
+        }
+
+
+        /*
+        ========================================
+        UPLOAD FILE
+        ========================================
+        */
+
+        async function uploadFile(
+            file,
+            parentPath = ""
+        ) {
+
+            try {
+
+                const formData =
+                    new FormData();
+
+
+                /*
+                IMPORTANT:
+
+                Add parentPath BEFORE file.
+                */
+
+                formData.append(
+                    "parentPath",
+                    parentPath
+                );
+
+
+                formData.append(
+                    "file",
+                    file
+                );
+
+
+                const res =
+                    await fetch(
+                        `${API_URL}/files`,
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+
+                const data =
+                    await res.json();
+
+
+                if (!res.ok) {
+
+                    throw new Error(
+                        data.message ||
+                        "Upload failed"
+                    );
+
+                }
+
+
+                alert(
+                    "File uploaded successfully"
+                );
+
+
+                await myFiles();
+
+
+            } catch (err) {
+
+                console.error(
+                    "Upload failed:",
+                    err
+                );
+
+
+                alert(
+                    err.message
+                );
+
+            }
+
+        }
+
+        /*
+        ========================================
+        DELETE FILE / FOLDER
+        ========================================
+        */
+
+        async function deleteFile(filePath) {
+
+            const confirmed = confirm(
+                `Are you sure you want to delete "${filePath}"?`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+
+                const encodedPath = filePath
+                    .split("/")
+                    .map(encodeURIComponent)
+                    .join("/");
+
+                const response = await fetch(
+                    `http://localhost:5020/files/${encodedPath}`,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message);
+                }
+
+                console.log(data.message);
+
+                // Refresh file tree
+                myFiles();
+
+            } catch (err) {
+
+                console.error(
+                    "Delete failed:",
+                    err
+                );
+
+                alert(err.message);
+
+            }
+        }
+        /*
+        ========================================
+        ROOT UPLOAD
+        ========================================
+        */
+
+        uploadRootButton.addEventListener(
+            "click",
+            () => {
+
+                rootFileInput.click();
+
+            }
+        );
+
+
+        rootFileInput.addEventListener(
+            "change",
+            async (e) => {
+
+                const file =
+                    e.target.files[0];
+
+
+                if (!file) {
+                    return;
+                }
+
+
+                /*
+                Empty parentPath means
+                upload into public/
+                */
+
+                await uploadFile(
+                    file,
+                    ""
+                );
+
+
+                rootFileInput.value =
+                    "";
+
+            }
+        );
+
+
+        /*
+        ========================================
+        CREATE ROOT FOLDER
+        ========================================
+        */
+
+        createFolderButton.addEventListener(
+            "click",
+            () => {
+
+                createFolderInput(
+                    "",
+                    myFilesContainer
+                );
+
+            }
+        );
+
+
+        /*
+        ========================================
+        CREATE NESTED FOLDER
+        ========================================
+        */
+
+        function createNestedFolder(
+            container,
+            parentPath
+        ) {
+
+            createFolderInput(
+                parentPath,
+                container
+            );
+
+        }
+
+
+        /*
+        ========================================
+        CREATE FOLDER INPUT
+        ========================================
+        */
+
+        function createFolderInput(
+            parentPath,
+            container
+        ) {
+
+            /*
+            Prevent multiple inputs
+            */
+
+            const existingInput =
+                container.querySelector(
+                    ".folder-input"
+                );
+
+
+            if (existingInput) {
+
+                existingInput.focus();
+
+                return;
+
+            }
+
+
+            const input =
+                document.createElement("input");
+
+
+            input.type =
+                "text";
+
+
+            input.className =
+                "folder-input";
+
+
+            input.placeholder =
+                "Enter folder name";
+
+
+            container.appendChild(
+                input
+            );
+
+
+            input.focus();
+
+
+            /*
+            Enter
+            */
+
+            input.addEventListener(
+                "keydown",
+                async (e) => {
+
+                    if (
+                        e.key !== "Enter"
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const dirname =
+                        input.value.trim();
+
+
+                    if (!dirname) {
+
+                        alert(
+                            "Please enter a folder name"
+                        );
+
+                        return;
+
+                    }
+
+
+                    await createFolder(
+                        parentPath,
+                        dirname,
+                        input
+                    );
+
+                }
+            );
+
+
+            /*
+            Escape
+            */
+
+            input.addEventListener(
+                "keydown",
+                (e) => {
+
+                    if (
+                        e.key === "Escape"
+                    ) {
+
+                        input.remove();
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /*
+        ========================================
+        CREATE FOLDER API
+        ========================================
+        */
+
+        async function createFolder(
+            parentPath,
+            dirname,
+            input
+        ) {
+
+            try {
+
+                const res =
+                    await fetch(
+                        `${API_URL}/directory`,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                parentPath,
+                                dirname
+                            })
+
+                        }
+                    );
+
+
+                const data =
+                    await res.json();
+
+
+                if (!res.ok) {
+
+                    throw new Error(
+                        data.message ||
+                        "Failed to create folder"
+                    );
+
+                }
+
+
+                input.remove();
+
+
+                await myFiles();
+
+
+            } catch (err) {
+
+                console.error(
+                    "Failed to create folder:",
+                    err
+                );
+
+
+                alert(
+                    err.message
+                );
+
+            }
+
+        }
+
+
+        /*
+        ========================================
+        ENCODE PATH
+        ========================================
+        */
+
+        function encodePath(
+            filePath
+        ) {
+
+            return filePath
+                .split("/")
+                .map(
+                    part =>
+                        encodeURIComponent(part)
+                )
+                .join("/");
+
+        }
+
+
+        /*
+        ========================================
+        HTML ESCAPE
+        ========================================
+        */
+
+        function escapeHtml(
+            value
+        ) {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.textContent =
+                value;
+
+
+            return div.innerHTML;
+
+        }
+
+
+        /*
+        ========================================
+        INITIAL LOAD
+        ========================================
+        */
+
+        myFiles();
+
+    </script>
+
+</body>
+
+</html>
